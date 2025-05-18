@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <title>WebAR Nail Art</title>
+    <script src="https://cdn.jsdelivr.net/npm/@mediapipe/hands/hands.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils/camera_utils.js"></script>
+    <script src="https://aframe.io/releases/1.4.1/aframe.min.js"></script>
+    <style>
+        html,
+        body {
+            margin: 0;
+            height: 100%;
+            overflow: hidden;
+            background: #000;
+        }
+
+        video {
+            display: none;
+        }
+    </style>
+</head>
+
+<body>
+    <h1>Test Nail Art Try On</h1>
+    <a-scene embedded vr-mode-ui="enabled: false">
+        <a-camera position="0 0 0"></a-camera>
+        <a-sky color="#FFFFFF"></a-sky>
+        <a-sphere id="nail-art" radius="0.02" color="#FF69B4" position="0 0 -0.5" visible="false"></a-sphere>
+    </a-scene>
+
+    <video id="video" playsinline autoplay muted></video>
+
+    <script>
+        const videoElement = document.getElementById('video');
+        const nailArt = document.getElementById('nail-art');
+
+        const hands = new Hands({
+            locateFile: (file) => `https://cdn.jsdelivr.net/npm/@mediapipe/hands/${file}`
+        });
+
+        hands.setOptions({
+            maxNumHands: 1,
+            modelComplexity: 1,
+            minDetectionConfidence: 0.7,
+            minTrackingConfidence: 0.7
+        });
+
+        hands.onResults((results) => {
+            if (results.multiHandLandmarks && results.multiHandLandmarks.length > 0) {
+                const tip = results.multiHandLandmarks[0][8]; // index finger tip
+                const x = (tip.x - 0.5) * -2;
+                const y = (0.5 - tip.y) * 2;
+                const z = tip.z - 0.2;
+
+                nailArt.setAttribute('position', `${x} ${y} ${z}`);
+                nailArt.setAttribute('visible', 'true');
+            } else {
+                nailArt.setAttribute('visible', 'false');
+            }
+        });
+
+        const camera = new Camera(videoElement, {
+            onFrame: async () => {
+                await hands.send({ image: videoElement });
+            },
+            width: 640,
+            height: 480
+        });
+
+        camera.start();
+    </script>
+
+</body>
+
+</html>
